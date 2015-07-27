@@ -78,7 +78,44 @@ function(req, res) {
 // Write your authentication routes here
 /************************************************************/
 
+//login
+app.get('/login', 
+function(req, res) {
+  res.render('login');
+});
 
+
+app.post('/login', function(req, res){
+
+});
+
+//signup
+app.get('/signup', 
+function(req, res) {
+  res.render('signup');
+});
+
+app.post('/signup', function(req, res){
+  var username = req.body.username;
+  var password = req.body.password;
+  new User({
+    'username': username,
+    'password': password
+    }).save().then(function(user){
+      Users.add(user);
+      user.save();
+      res.send(200, user);
+    });
+
+
+});
+
+///the hash doesn't seem to be saved for whatever reason ---------- TODO: NEED TO FIX
+
+//logout
+app.post('/logout', function(req, res){
+
+});
 
 /************************************************************/
 // Handle the wildcard route last - if all other routes fail
