@@ -3,6 +3,7 @@ var util = require('./lib/utility');
 var partials = require('express-partials');
 var bodyParser = require('body-parser');
 
+var session = require('express-session')
 
 var db = require('./app/config');
 var Users = require('./app/collections/users');
@@ -21,6 +22,33 @@ app.use(bodyParser.json());
 // Parse forms (signup/login)
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static(__dirname + '/public'));
+
+var genuuid = function(){
+  return Math.round(Math.random()*0x100000000).toString(16)
+};
+
+app.use(session({
+  // genid: function(req) {
+  //   return genuuid() // use UUIDs for session IDs
+  // },
+  secret: 'Rene and Marco are so cool!!!',
+  cookie: { maxAge: 3600000 }
+}));
+
+app.use(function(req,res,next){
+  var sess = req.session;
+  console.log('===== CHECKING SESSION',sess.user, req.sessionID);
+  if(sess.user){
+    sess.touch();
+    next();
+  }else if(req.url==='/signup'|| req.url==='/login'){
+    next();
+  }
+  else{
+    console.log('===== LOGGED OUT!');
+    res.redirect(302,'/login');
+  }
+});
 
 
 app.get('/', 
@@ -78,6 +106,7 @@ function(req, res) {
 // Write your authentication routes here
 /************************************************************/
 
+
 //login
 app.get('/login', 
 function(req, res) {
@@ -86,27 +115,59 @@ function(req, res) {
 
 
 app.post('/login', function(req, res){
+  // req.session.user = true;
+  //res.redirect('create');
 
+
+
+  var username = req.body.username;
+  var password = req.body.password;
+  Users.query({where: { username: username }})
+  .fetchOne()
+  .then(function(model){
+    model.checkCredentials(password,function(valid){
+      if(valid){
+        //Init Session
+        var sess = req.session;
+        sess.user = true;
+        res.redirect(302,'/');
+      }else{
+        res.redirect(302,'/login');
+      }
+    });
+  });
 });
 
 //signup
 app.get('/signup', 
 function(req, res) {
-  res.render('signup');
+  // res.session.user = false;
+  res.render('signup', {
+    // session: res.session
+  });
 });
+
 
 app.post('/signup', function(req, res){
   var username = req.body.username;
   var password = req.body.password;
-  new User({
-    'username': username,
-    'password': password
-    }).save().then(function(user){
-      Users.add(user);
-      user.save();
-      res.send(200, user);
-    });
 
+  Users.query({where: { username: username }})
+  .fetchOne()
+  .then(function(model){
+    if(model) {
+      res.redirect(301,'/login');
+    } else {
+      new User({
+        'username': username,
+        'password': password
+        }).save().then(function(user){
+          Users.add(user);
+          user.save();
+          res.send(200, user);
+        });
+    }
+  });
 
 });
 

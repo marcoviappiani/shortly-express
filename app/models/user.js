@@ -20,7 +20,21 @@ var User = db.Model.extend({
 
     console.log('----- INITIALIZE PASSWORD', this.get('password'));
     console.log('----- INITIALIZE SALT', this.get('salt'));
-  },
+  }, 
+  checkCredentials: function(input,callback) {
+    var hash = this.get('password'); 
+    // Load hash from your password DB.
+    bcrypt.compare(input, hash, function(err, res) {
+      callback(res);
+    });
+  }
+
+
+
+
+
+
+  /*,
   hashPassword: function(model) {
     var user = model;
     var inputPassword = user.get('password');
@@ -41,7 +55,7 @@ var User = db.Model.extend({
         console.log('----- SALT ADDED', user.get('salt'));
       });
     });
-  }     
+  } */    
 });
 
 module.exports = User;
