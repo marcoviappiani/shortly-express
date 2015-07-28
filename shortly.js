@@ -61,8 +61,12 @@ function(req, res) {
 
 app.get('/links', 
 function(req, res) {
-  Links.reset().fetch().then(function(links) {
+  var userId = req.session.user;
+
+  Links.reset().query({where: { user_id: userId }}).fetch().then(function(links) {
     res.send(200, links.models);
+  // Links.reset().fetch({where : {user_id: userId}}).then(function(links) {
+  //   res.send(200, links.models);
   });
 });
 
@@ -74,8 +78,9 @@ function(req, res) {
     console.log('Not a valid url: ', uri);
     return res.send(404);
   }
+  var userId = req.session.user;
 
-  new Link({ url: uri }).fetch().then(function(found) {
+  new Link({ url: uri}).fetch().then(function(found) {
     if (found) {
       res.send(200, found.attributes);
     } else {
@@ -88,7 +93,8 @@ function(req, res) {
         var link = new Link({
           url: uri,
           title: title,
-          base_url: req.headers.origin
+          base_url: req.headers.origin,
+          user_id: userId
         });
 
         link.save().then(function(newLink) {
@@ -127,7 +133,8 @@ app.post('/login', function(req, res){
       if(valid){
         //Init Session
         var sess = req.session;
-        sess.user = true;
+        sess.user = model.get('id');
+        console.log('---------------USER SESSION:',sess.user);
         res.redirect(302,'/');
       }else{
         res.redirect(302,'/login');
@@ -163,7 +170,8 @@ app.post('/signup', function(req, res){
           Users.add(user);
           user.save();
           var sess = req.session;
-          sess.user = true;
+          sess.user = user.get('id');
+          console.log('---------------USER SESSION 2:' ,sess.user);
           res.redirect(302,'/');
         });
     }
@@ -187,7 +195,8 @@ app.get('/logout', function(req, res){
 /************************************************************/
 
 app.get('/*', function(req, res) {
-  new Link({ code: req.params[0] }).fetch().then(function(link) {
+  new Link({ code: req.params[0]}).fetch().then(function(link) {
+    //TODO add user_id
     if (!link) {
       res.redirect('/');
     } else {
