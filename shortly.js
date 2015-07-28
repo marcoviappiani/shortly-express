@@ -32,21 +32,19 @@ app.use(session({
   //   return genuuid() // use UUIDs for session IDs
   // },
   secret: 'Rene and Marco are so cool!!!',
-  cookie: { maxAge: 3600000 }
+  cookie: { maxAge: 400000 },
+  resave: true,
+  saveUninitialized: true
 }));
 
 app.use(function(req,res,next){
   var sess = req.session;
   console.log('===== CHECKING SESSION',sess.user, req.sessionID);
-  if(sess.user){
-    sess.touch();
-    next();
-  }else if(req.url==='/signup'|| req.url==='/login'){
-    next();
-  }
-  else{
+  if((req.url==='/'|| req.url==='/create' || req.url==='/links')&&(!sess.user)){
     console.log('===== LOGGED OUT!');
     res.redirect(302,'/login');
+  }else{
+    next();
   }
 });
 
@@ -164,18 +162,22 @@ app.post('/signup', function(req, res){
         }).save().then(function(user){
           Users.add(user);
           user.save();
-          res.send(200, user);
+          var sess = req.session;
+          sess.user = true;
+          res.redirect(302,'/');
         });
     }
   });
 
 });
 
-///the hash doesn't seem to be saved for whatever reason ---------- TODO: NEED TO FIX
 
 //logout
-app.post('/logout', function(req, res){
-
+app.get('/logout', function(req, res){
+  var sess = req.session;
+  // sess.user = false;
+  sess.destroy();
+  res.redirect(302,'/login');
 });
 
 /************************************************************/
